@@ -407,13 +407,18 @@ def run_class_pipeline(
             save_graph=True,
         )
 
-
-    # ---- 10) CyanoMetDB matching ----
+    #----10) CyanoMetDB matching
     lib_df = load_library(LIB_XLSX, class_filter=class_filter, sheet_index=1)
 
-    ms1_csv = _latest_indiv_summary()
-    ms1_df = read_any_table(ms1_csv)
+    try:
+        ms1_csv = _latest_indiv_summary()
+        ms1_df = read_any_table(ms1_csv)
+    except FileNotFoundError:
+        # fallback: use the summary we just computed
+        ms1_df = indiv_summary.copy()
+
     ms1_sel = select_ms1_columns(ms1_df)
+
 
     # Library matching tolerance
     if lib_tol_mode == "Da":
