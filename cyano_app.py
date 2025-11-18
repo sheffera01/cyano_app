@@ -3,7 +3,6 @@
 # ==============================
 # Imports & working directory
 # ==============================
-print("TEST PUSH TO GITHUB")
 
 import os
 from datetime import datetime
@@ -128,10 +127,10 @@ def find_latest_by_prefix(
 # ==============================
 # Config / constants
 # ==============================
+
 from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 LIB_XLSX = BASE_DIR / "data" / "CyanoMetDB_Version03.xlsx"
-
 #LIB_XLSX = os.path.join(BASE_DIR, "CyanoMetDB_Version03.xlsx")
 
 ION_TO_LABEL = {
@@ -195,12 +194,11 @@ MVIONS = [136.0757, 136.0729, 159.0908, 159.0935]
 AGIONS = [120.0807, 144.0109, 188.1428, 213.0685, 199.0503, 267.1483]
 MGIONS = [100.1122, 134.0727, 168.0341, 201.9952, 114.1278, 148.0888, 182.0494, 128.1423, 162.1039, 196.0639, 142.1590, 176.1195, 210.0795]
 
+BASE_DIR = Path(__file__).resolve().parent
+
 # Default files for the UI (edit or empty out if you prefer uploads only)
-DEFAULT_FILES_MC = [
-    #"/nfs/turbo/lsa-gdick2/geomicro/home/sheffera/mzml/GLR_ID-06288F.mzML",
-    #"/nfs/turbo/lsa-gdick2/geomicro/home/sheffera/ms2_project/101_1ug.mzML",
-    #BASE_DIR / "C1B_3.mzML",
-]
+DEFAULT_FILES_MC = []
+
 DEFAULT_FILES_MP = DEFAULT_FILES_MC
 DEFAULT_FILES_AR = DEFAULT_FILES_MC
 DEFAULT_FILES_AB = DEFAULT_FILES_MC
@@ -251,7 +249,7 @@ CLASS_CONFIGS = {
         "class_tag": "MV",
     },
     "AG": {
-        "label": "Aeruginosamide (AG) using Other Cyclic Peptide as label from CyanoMetDB",
+        "label": "Aeruginosamide (AG) using 'Other Cyclic Peptide' as label from CyanoMetDB",
         "ions": AGIONS,
         "default_files": DEFAULT_FILES_AG,
         "label_col": "CyanopeptideClass_AG",
@@ -372,20 +370,6 @@ def run_class_pipeline(
         fmt="png",
     )
 
-    # Filter by mz and extra heatmaps
-    filtered_range = filter_precursor_range(
-        latest_ind,
-        min_mz=precursor_mz_min,
-        max_mz=precursor_mz_max,
-    )
-    plot_heatmaps(
-        filtered_range,
-        ion_to_label=ion_to_label,
-        BIN_WIDTH=0.1,
-        merged=True,
-        per_file=True,
-    )
-
     # ---- 8) Summary + dot plot ----
     indiv_summary = make_summary_ind(latest_ind, ion_to_label=ion_to_label)
     fig_dot, ax_dot, dot_path = plot_indiv_scatter(
@@ -403,16 +387,26 @@ def run_class_pipeline(
         & (latest_ind["precmz"] <= precursor_mz_max)
     ].copy()
 
-    merged_summary, merged_edges, G = ap.run_merged(
-        filtered_ind,
-        make_summary_ind=make_summary_ind_with_labels,
-        af_module=af,
-        mz_col="merged_precmz",
-        charge_col="charge",
-        rt_col="rt_median",
-        out_dir="adduct_outputs",
-        save_graph=True,
-    )
+    if filtered_ind is None or filtered_ind.empty:
+        print(
+            "run_class_pipeline: no features in precursor m/z "
+            f"range {precursor_mz_min}–{precursor_mz_max}; skipping adduct pipeline."
+        )
+        merged_summary = pd.DataFrame()
+        merged_edges = pd.DataFrame()
+        G = None
+    else:
+        merged_summary, merged_edges, G = ap.run_merged(
+            filtered_ind,
+            make_summary_ind=make_summary_ind_with_labels,
+            af_module=af,
+            mz_col="merged_precmz",
+            charge_col="charge",
+            rt_col="rt_median",
+            out_dir="adduct_outputs",
+            save_graph=True,
+        )
+
 
     # ---- 10) CyanoMetDB matching ----
     lib_df = load_library(LIB_XLSX, class_filter=class_filter, sheet_index=1)
@@ -636,35 +630,45 @@ st.subheader("Input mzML files")
 
 input_mode = st.radio(
     "Select input method:",
-    ["Use server file paths"],
-    horizontal=True
+    ["Upload mzML files", "Use server file paths /nfs/turbo/...mzML"],
+    horizontal=True,
 )
+
 
 uploaded_files = []
 files_to_use = []
 
 if input_mode == "Upload mzML files":
+    st.write("Upload mzML files from your computer. They’ll be fixed and saved under 'uploaded_mzml/'.")
     uploaded_files = st.file_uploader(
         "Upload mzML files",
         type=["mzml", "mzML"],
         accept_multiple_files=True
     )
+
     if uploaded_files:
-        st.success(f"{len(uploaded_files)} file(s) uploaded.")
+        for uf in uploaded_files:
+            saved_path = save_and_fix_uploaded_mzml(uf)
+            files_to_use.append(saved_path)
+
+        st.success(f"{len(files_to_use)} file(s) will be analyzed.")
+        st.write("Files that will be analyzed:")
+        for p in files_to_use:
+            st.code(p)
+
 else:
     st.write(
         f"Running analysis for **{cfg['label']}**.\n\n"
-        "Provide mzML file paths on the server (one per line), "
+        "Provide mzML file paths on **this server** (one per line), "
         "and/or upload mzML files from your computer."
     )
 
     # --- server-side paths ---
     files_text = st.text_area(
         "mzML file paths on the server",
-        value="\n".join(cfg["default_files"]),
+        value="",
         height=100,
     )
-
     server_paths = [line.strip() for line in files_text.splitlines() if line.strip()]
 
     # --- uploaded files ---
@@ -680,12 +684,12 @@ else:
             saved_path = save_and_fix_uploaded_mzml(uf)
             uploaded_paths.append(saved_path)
 
-    # Use both server paths and uploaded paths
     files_to_use = server_paths + uploaded_paths
 
     st.write("Files that will be analyzed:")
     for p in files_to_use:
         st.code(p)
+
 
 st.markdown("### Filtering and advanced options")
 
@@ -735,24 +739,12 @@ lib_tol_value = st.number_input(
     value=default_lib_tol,
     step=0.0001 if lib_tol_mode == "Da" else 0.1,
 )
-run_clicked = st.button("Run analysis")
 
 # 1) Run the pipeline only when button is clicked
-if run_clicked:
-    # Save uploaded files temporarily (if using upload-only mode)
-    uploaded_paths = []
-    if uploaded_files:
-        for uf in uploaded_files:
-            temp_path = os.path.join(BASE_DIR, f"uploaded_{uf.name}")
-            with open(temp_path, "wb") as f:
-                f.write(uf.read())
-            uploaded_paths.append(temp_path)
+run_clicked = st.button("Run analysis")
 
-    # Select correct file list
-    if input_mode == "Upload mzML files":
-        actual_files = uploaded_paths
-    else:
-        actual_files = files_to_use
+if run_clicked:
+    actual_files = files_to_use
 
     if not actual_files:
         st.error("No files provided. Please upload or enter at least one.")
@@ -766,9 +758,16 @@ if run_clicked:
                 label_col=cfg["label_col"],
                 class_filter=cfg["class_filter"],
                 class_tag=cfg["class_tag"],
+                # pass through UI options too (see next section)
+                rt_window=(rt_min, rt_max),
+                precursor_mz_min=precursor_mz_min,
+                precursor_mz_max=precursor_mz_max,
+                lib_tol_mode=lib_tol_mode,
+                lib_tol_value=lib_tol_value,
             )
 
         st.success("Pipeline finished!")
+
 
 # 2) Always try to display results *from session_state*
 results = st.session_state["results"]
@@ -803,6 +802,8 @@ if results is not None:
     if matched_tiles_png and os.path.exists(matched_tiles_png):
         st.subheader("Matched compound tiles")
         st.image(matched_tiles_png, caption=os.path.basename(matched_tiles_png))
+    else:
+        st.info("No 'matches_with_scans_to_cyanometDB' PNG found for this run.")
 
     # ---------- Unknown features with scans (PNG) ----------
     unknown_png = results.get("unknown_features_png")
