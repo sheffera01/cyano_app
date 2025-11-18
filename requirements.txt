@@ -2,3 +2,5 @@ streamlit
 massql
 pandas
 seaborn
+openpyxl
+
