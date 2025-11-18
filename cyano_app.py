@@ -198,8 +198,7 @@ MGIONS = [100.1122, 134.0727, 168.0341, 201.9952, 114.1278, 148.0888, 182.0494, 
 DEFAULT_FILES_MC = [
     #"/nfs/turbo/lsa-gdick2/geomicro/home/sheffera/mzml/GLR_ID-06288F.mzML",
     #"/nfs/turbo/lsa-gdick2/geomicro/home/sheffera/ms2_project/101_1ug.mzML",
-    BASE_DIR / "C1B_3.mzML",
-]
+    #BASE_DIR / "C1B_3.mzML",
 ]
 DEFAULT_FILES_MP = DEFAULT_FILES_MC
 DEFAULT_FILES_AR = DEFAULT_FILES_MC
