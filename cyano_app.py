@@ -716,7 +716,7 @@ st.subheader("Input mzML files")
 
 input_mode = st.radio(
     "Select input method:",
-    ["Upload mzML files", "Use server file paths /nfs/turbo/...mzML"],
+    ["Upload mzML files"],
     horizontal=True,
 )
 
