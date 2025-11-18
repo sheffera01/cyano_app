@@ -299,7 +299,6 @@ def latest_file_in_dir(directory: str, patterns):
 # ==============================
 # Core pipeline
 # ==============================
-
 def run_class_pipeline(
     files,
     ions,
@@ -325,6 +324,38 @@ def run_class_pipeline(
     # record start time for "latest" file filtering if needed
     run_start_time = time.time()
 
+    # ---------- default / safe values so they're always defined ----------
+    merged_summary = pd.DataFrame()
+    merged_edges = pd.DataFrame()
+    G = None
+
+    cyanomet_out_dir = None
+    cyanomet_paths = []
+    cyanomet_plot_path = None
+
+    ms1_csv = None
+    ms1_df = pd.DataFrame()
+    ms1_sel = pd.DataFrame()
+    lib_df = pd.DataFrame()
+    matches = pd.DataFrame()
+    matched_only = pd.DataFrame()
+
+    df_int = pd.DataFrame()
+    intensity_outfile = None
+    df_tiles = pd.DataFrame()
+    run_dir = None
+    tilemap_summary_file = None
+
+    diagnostic_individual_png = None
+    matched_tiles_png = None
+    cyano_heatmap_png = None
+    adduct_graph_png = None
+    indiv_merged_csv = None
+    indiv_merged_df = None
+    unknown_features_csv = None
+    unknown_features_df = None
+    # --------------------------------------------------------------------
+
     # ---- 1) Run searches ----
     massql_query = mu.build_massql_query(
         ions_mz=ions,
@@ -346,144 +377,193 @@ def run_class_pipeline(
     ind_hits_l.to_csv(ind_csv, index=False)
     ind_csv_path = os.path.abspath(ind_csv)
 
-    # ---- 4) RT histograms ----
-    latest_ind, _ = load_latest_hits()
-    plot_rt_histograms(latest_ind, ion_to_label, out_dir_root="RT_histogram_plots")
-
-    # ---- 5) Counts ----
-    plot_indiv_counts(latest_ind, out_dir="plots_diagnostic_ion_counts")
-
-    # ---- 6) RT vs mz plots ----
-    fig_rt, ax_rt = plot_precursor_rt(
-        latest_ind,
-        ion_to_label=ion_to_label,
-        save=True,
-    )
-    plot_per_file_legend(latest_ind, save=True)
-
-    # ---- 7) Heatmaps ----
-    plot_heatmaps(
-        latest_ind,
-        ion_to_label=ion_to_label,
-        save=True,
-        out_dir="Heatmap_Individual_ion_plots",
-        fmt="png",
-    )
-
-    # ---- 8) Summary + dot plot ----
-    indiv_summary = make_summary_ind(latest_ind, ion_to_label=ion_to_label)
-    fig_dot, ax_dot, dot_path = plot_indiv_scatter(
-        indiv_summary,
-        out_dir="DotPlot_individual_ion_plots",
-        fmt="png",
-    )
-
-    # ---- 9) Adduct pipeline ----
-    def make_summary_ind_with_labels(df, *args, **kwargs):
-        return make_summary_ind(df, *args, ion_to_label=ion_to_label, **kwargs)
-
-    filtered_ind = latest_ind[
-        (latest_ind["precmz"] >= precursor_mz_min)
-        & (latest_ind["precmz"] <= precursor_mz_max)
-    ].copy()
-
-    if filtered_ind is None or filtered_ind.empty:
-        print(
-            "run_class_pipeline: no features in precursor m/z "
-            f"range {precursor_mz_min}–{precursor_mz_max}; skipping adduct pipeline."
-        )
-        merged_summary = pd.DataFrame()
-        merged_edges = pd.DataFrame()
-        G = None
-    else:
-        merged_summary, merged_edges, G = ap.run_merged(
-            filtered_ind,
-            make_summary_ind=make_summary_ind_with_labels,
-            af_module=af,
-            mz_col="merged_precmz",
-            charge_col="charge",
-            rt_col="rt_median",
-            out_dir="adduct_outputs",
-            save_graph=True,
-        )
-
-    #----10) CyanoMetDB matching
-    lib_df = load_library(LIB_XLSX, class_filter=class_filter, sheet_index=1)
-
+    # ---- 4) RT histograms & latest_ind ----
+    # load_latest_hits may depend on files that were just written above
     try:
-        ms1_csv = _latest_indiv_summary()
-        ms1_df = read_any_table(ms1_csv)
-    except FileNotFoundError:
-        # fallback: use the summary we just computed
-        ms1_df = indiv_summary.copy()
+        latest_ind, _ = load_latest_hits()
+    except FileNotFoundError as e:
+        # Fallback: use the hits we just computed
+        print(f"load_latest_hits: {e} -> using in-memory ind_hits_l instead.")
+        latest_ind = ind_hits_l.copy()
 
-    ms1_sel = select_ms1_columns(ms1_df)
-
-
-    # Library matching tolerance
-    if lib_tol_mode == "Da":
-        matches = match_ms1_to_lib(ms1_sel, lib_df, tol_da=lib_tol_value)
-    elif lib_tol_mode.lower() == "ppm":
-        matches = match_ms1_to_lib(ms1_sel, lib_df, tol_ppm=lib_tol_value)
+    if latest_ind is None or latest_ind.empty:
+        print("run_class_pipeline: latest_ind is empty; downstream plots/matching will be limited.")
     else:
-        # Fallback: use Da if mode is weird
-        matches = match_ms1_to_lib(ms1_sel, lib_df, tol_da=lib_tol_value)
+        plot_rt_histograms(latest_ind, ion_to_label, out_dir_root="RT_histogram_plots")
 
-    matched_only = matches[matches["Compound identifier"].notna()].copy()
+        # ---- 5) Counts ----
+        plot_indiv_counts(latest_ind, out_dir="plots_diagnostic_ion_counts")
 
-    ts2 = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    cyanomet_out_dir, cyanomet_paths = write_outputs(
-        matches,
-        matched_only,
-        out_dir="CyanoMetDB_matches_out",
-        ts=ts2,
-    )
+        # ---- 6) RT vs mz plots ----
+        fig_rt, ax_rt = plot_precursor_rt(
+            latest_ind,
+            ion_to_label=ion_to_label,
+            save=True,
+        )
+        plot_per_file_legend(latest_ind, save=True)
 
-    cyanomet_plot_path = plot_matched_tiles(
-        matched_only,
-        out_dir_ts=cyanomet_out_dir,
-        ts=ts2,
-    )
+        # ---- 7) Heatmaps ----
+        try:
+            plot_heatmaps(
+                latest_ind,
+                ion_to_label=ion_to_label,
+                save=True,
+                out_dir="Heatmap_Individual_ion_plots",
+                fmt="png",
+            )
+        except ValueError as e:
+            # e.g. "zero-size array to reduction operation maximum"
+            print(f"plot_heatmaps(latest_ind) failed: {e}")
+
+        # ---- 8) Summary + dot plot ----
+        indiv_summary = make_summary_ind(latest_ind, ion_to_label=ion_to_label)
+        try:
+            fig_dot, ax_dot, dot_path = plot_indiv_scatter(
+                indiv_summary,
+                out_dir="DotPlot_individual_ion_plots",
+                fmt="png",
+            )
+        except Exception as e:
+            print(f"plot_indiv_scatter failed: {e}")
+            fig_dot, dot_path = None, None
+
+        # ---- 9) Adduct pipeline ----
+        def make_summary_ind_with_labels(df, *args, **kwargs):
+            return make_summary_ind(df, *args, ion_to_label=ion_to_label, **kwargs)
+
+        filtered_ind = latest_ind[
+            (latest_ind["precmz"] >= precursor_mz_min)
+            & (latest_ind["precmz"] <= precursor_mz_max)
+        ].copy()
+
+        if filtered_ind is None or filtered_ind.empty:
+            print(
+                "run_class_pipeline: no features in precursor m/z "
+                f"range {precursor_mz_min}–{precursor_mz_max}; skipping adduct pipeline."
+            )
+        else:
+            try:
+                merged_summary, merged_edges, G = ap.run_merged(
+                    filtered_ind,
+                    make_summary_ind=make_summary_ind_with_labels,
+                    af_module=af,
+                    mz_col="merged_precmz",
+                    charge_col="charge",
+                    rt_col="rt_median",
+                    out_dir="adduct_outputs",
+                    save_graph=True,
+                )
+            except ValueError as e:
+                # e.g. "run_merged: input DataFrame is empty."
+                print(f"run_merged failed: {e}")
+                merged_summary, merged_edges, G = pd.DataFrame(), pd.DataFrame(), None
+    # If latest_ind was empty, set some safe defaults for plots / summaries
+    if latest_ind is None or latest_ind.empty:
+        fig_rt = None
+        fig_dot = None
+        dot_path = None
+        indiv_summary = pd.DataFrame()
+
+    # ---- 10) CyanoMetDB matching ----
+    try:
+        lib_df = load_library(LIB_XLSX, class_filter=class_filter, sheet_index=1)
+    except FileNotFoundError as e:
+        print(f"load_library: {e} -> skipping CyanoMetDB matching.")
+        lib_df = pd.DataFrame()
+
+    if not lib_df.empty and not indiv_summary.empty:
+        # Prefer disk summary if present; otherwise use in-memory summary
+        try:
+            ms1_csv = _latest_indiv_summary()
+            ms1_df = read_any_table(ms1_csv)
+        except FileNotFoundError:
+            print("_latest_indiv_summary: none found -> using in-memory indiv_summary.")
+            ms1_df = indiv_summary.copy()
+            ms1_csv = None
+
+        ms1_sel = select_ms1_columns(ms1_df)
+
+        # Library matching tolerance
+        if not ms1_sel.empty:
+            if lib_tol_mode == "Da":
+                matches = match_ms1_to_lib(ms1_sel, lib_df, tol_da=lib_tol_value)
+            elif lib_tol_mode.lower() == "ppm":
+                matches = match_ms1_to_lib(ms1_sel, lib_df, tol_ppm=lib_tol_value)
+            else:
+                # Fallback: use Da if mode is weird
+                matches = match_ms1_to_lib(ms1_sel, lib_df, tol_da=lib_tol_value)
+
+            matched_only = matches[matches["Compound identifier"].notna()].copy()
+
+            ts2 = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            cyanomet_out_dir, cyanomet_paths = write_outputs(
+                matches,
+                matched_only,
+                out_dir="CyanoMetDB_matches_out",
+                ts=ts2,
+            )
+
+            try:
+                cyanomet_plot_path = plot_matched_tiles(
+                    matched_only,
+                    out_dir_ts=cyanomet_out_dir,
+                    ts=ts2,
+                )
+            except Exception as e:
+                print(f"plot_matched_tiles failed: {e}")
+                cyanomet_plot_path = None
+        else:
+            print("CyanoMetDB matching: ms1_sel is empty; skipping matching.")
+    else:
+        print("CyanoMetDB matching skipped: library or indiv_summary is empty.")
 
     # ---- 11) Intensities + tilemaps ----
-    df_int, intensity_outfile = sum_intensities()
-    df_tiles, run_dir, tilemap_summary_file = plot_has_tilemap_from_latest(
-        ion_to_label=ion_to_label
-    )
+    try:
+        df_int, intensity_outfile = sum_intensities()
+    except FileNotFoundError as e:
+        print(f"sum_intensities: {e} -> skipping intensity summarization.")
+        df_int, intensity_outfile = pd.DataFrame(), None
+
+    try:
+        df_tiles, run_dir, tilemap_summary_file = plot_has_tilemap_from_latest(
+            ion_to_label=ion_to_label
+        )
+    except FileNotFoundError as e:
+        print(f"plot_has_tilemap_from_latest: {e} -> skipping tilemap plotting.")
+        df_tiles, run_dir, tilemap_summary_file = pd.DataFrame(), None, None
 
     # ---- 12) Group files ----
-    group_files_by_timestamp(custom_name=class_tag, minutes=3)
+    try:
+        group_files_by_timestamp(custom_name=class_tag, minutes=3)
+    except Exception as e:
+        print(f"group_files_by_timestamp failed: {e}")
 
     # ---- 13) Find your specifically-named outputs (THIS RUN ONLY) ----
 
-    # 1) Diagnostic_ion_distribution_individual_(date).png
     diagnostic_individual_png = find_latest_by_prefix(
         "Diagnostic_ion_distribution_individual_",
         [".png", ".jpg", ".jpeg", ".svg"],
         min_mtime=run_start_time,
     )
 
-    # 2) matched_compound_tiles_(date).png
     matched_tiles_png = find_latest_by_prefix(
         "matched_compound_tiles_",
         [".png", ".jpg", ".jpeg", ".svg"],
         min_mtime=run_start_time,
     )
 
-    # 3) Cyanopeptide_detection_intensity_heatmap_adduct_outputs_(date).png
     cyano_heatmap_png = find_latest_by_prefix(
         "Cyanopeptide_detection_intensity_heatmap_adduct_outputs_",
         [".png", ".jpg", ".jpeg", ".svg"],
         min_mtime=run_start_time,
     )
-    # 3b) adduct_graph_merged_(date).png  (most recent for this run)
+
     adduct_graph_png = find_latest_by_prefix(
         "adduct_graph_merged_",
         [".png", ".jpg", ".jpeg", ".svg"],
         min_mtime=run_start_time,
     )
 
-    # 4) indiv_merged_summary_(date).csv / .tsv / .xlsx
     indiv_merged_csv = find_latest_by_prefix(
         "indiv_merged_summary_",
         [".csv", ".tsv", ".xlsx", ".xls"],
@@ -500,10 +580,10 @@ def run_class_pipeline(
                 indiv_merged_df = pd.read_csv(indiv_merged_csv, sep="\t")
             elif lower.endswith((".xlsx", ".xls")):
                 indiv_merged_df = pd.read_excel(indiv_merged_csv)
-        except Exception:
+        except Exception as e:
+            print(f"Failed to read indiv_merged_csv ({indiv_merged_csv}): {e}")
             indiv_merged_df = None
 
-    # 5) unknown_features_with_scans_(date).csv / .tsv / .xlsx + PNG
     unknown_features_png = find_latest_by_prefix(
         "unknown_features_with_scans_",
         [".png", ".jpg", ".jpeg"],
@@ -526,7 +606,8 @@ def run_class_pipeline(
                 unknown_features_df = pd.read_csv(unknown_features_csv, sep="\t")
             elif lower.endswith((".xlsx", ".xls")):
                 unknown_features_df = pd.read_excel(unknown_features_csv)
-        except Exception:
+        except Exception as e:
+            print(f"Failed to read unknown_features_csv ({unknown_features_csv}): {e}")
             unknown_features_df = None
 
     # ---- 14) Collect all relevant output files (latest run, but broad) ----
@@ -604,11 +685,11 @@ def run_class_pipeline(
         "unknown_features_png": unknown_features_png,
         "adduct_graph_png": adduct_graph_png,
 
-
         # Misc
         "massql_query": massql_query,
         "all_files": all_files,
     }
+
 
 
 # ==============================
