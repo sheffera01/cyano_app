@@ -465,35 +465,47 @@ def run_class_pipeline(
                 merged_summary, merged_edges, G = pd.DataFrame(), pd.DataFrame(), None
 
     # ---- 10) CyanoMetDB matching ----
+    # Safe defaults so the return dict always has these keys
+    matches = pd.DataFrame()
+    matched_only = pd.DataFrame()
+    cyanomet_out_dir = None
+    cyanomet_paths = []
+    cyanomet_plot_path = None
+    ms1_csv = None
+    ms1_df = pd.DataFrame()
+    ms1_sel = pd.DataFrame()
+
     try:
         lib_df = load_library(LIB_XLSX, class_filter=class_filter, sheet_index=1)
     except FileNotFoundError as e:
         print(f"load_library: {e} -> skipping CyanoMetDB matching.")
         lib_df = pd.DataFrame()
 
-    if not lib_df.empty and not indiv_summary.empty:
-        # Prefer disk summary if present; otherwise use in-memory summary
-        try:
-            ms1_csv = _latest_indiv_summary()
-            ms1_df = read_any_table(ms1_csv)
-        except FileNotFoundError:
-            print("_latest_indiv_summary: none found -> using in-memory indiv_summary.")
-            ms1_df = indiv_summary.copy()
-            ms1_csv = None
+    if lib_df.empty:
+        print("CyanoMetDB matching skipped: library is empty.")
+    elif indiv_summary is None or indiv_summary.empty:
+        print("CyanoMetDB matching skipped: indiv_summary is empty.")
+    else:
+        # Always use the current run's summary (no disk round-trip)
+        ms1_df = indiv_summary.copy()
+        print(f"CyanoMetDB: {len(ms1_df)} MS1 features before column selection.")
 
         ms1_sel = select_ms1_columns(ms1_df)
+        print(f"CyanoMetDB: {len(ms1_sel)} MS1 features after column selection.")
 
-        # Library matching tolerance
-        if not ms1_sel.empty:
+        if ms1_sel.empty:
+            print("CyanoMetDB matching: ms1_sel is empty; skipping matching.")
+        else:
+            # Library matching tolerance
             if lib_tol_mode == "Da":
                 matches = match_ms1_to_lib(ms1_sel, lib_df, tol_da=lib_tol_value)
             elif lib_tol_mode.lower() == "ppm":
                 matches = match_ms1_to_lib(ms1_sel, lib_df, tol_ppm=lib_tol_value)
             else:
-                # Fallback: use Da if mode is weird
                 matches = match_ms1_to_lib(ms1_sel, lib_df, tol_da=lib_tol_value)
 
             matched_only = matches[matches["Compound identifier"].notna()].copy()
+            print(f"CyanoMetDB: {len(matched_only)} matched features.")
 
             ts2 = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             cyanomet_out_dir, cyanomet_paths = write_outputs(
@@ -512,10 +524,6 @@ def run_class_pipeline(
             except Exception as e:
                 print(f"plot_matched_tiles failed: {e}")
                 cyanomet_plot_path = None
-        else:
-            print("CyanoMetDB matching: ms1_sel is empty; skipping matching.")
-    else:
-        print("CyanoMetDB matching skipped: library or indiv_summary is empty.")
 
     # ---- 11) Intensities + tilemaps ----
     try:
@@ -531,6 +539,7 @@ def run_class_pipeline(
     except FileNotFoundError as e:
         print(f"plot_has_tilemap_from_latest: {e} -> skipping tilemap plotting.")
         df_tiles, run_dir, tilemap_summary_file = pd.DataFrame(), None, None
+
 
     # ---- 12) Group files ----
     try:
