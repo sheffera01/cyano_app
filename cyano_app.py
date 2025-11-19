@@ -928,18 +928,28 @@ if results is not None:
         st.subheader("Individual merged summary")
         st.dataframe(indiv_merged_df.head())
 
-    # ---------- unknown_features_with_scans_(date) CSV/TSV/XLSX ----------
+# ---------- unknown_features_with_scans_(date) CSV/TSV/XLSX ----------
 unknown_features_df = results.get("unknown_features_df")
+
 if unknown_features_df is not None and not unknown_features_df.empty:
     st.subheader("Unknown features with scans (table)")
-    # Identify columns like has_MC..., has_something...
-    has_cols = [c for c in unknown_features_df.columns if c.startswith("has_")]
+
+    # get all diagnostic flag columns (has_*)
+    has_cols = [c for c in unknown_features_df.columns if str(c).startswith("has_")]
+
+    # styling function: orange tile for True
     def highlight_true(val):
-        if val is True or str(val).lower() == "true":
-            return "background-color: lightblue; color: black"
+        if val is True or str(val).lower() == "true" or val == 1:
+            return "background-color: orange; color: black"
         return ""
-    styled = unknown_features_df.style.applymap(highlight_true, subset=has_cols)
-    st.dataframe(styled)
+
+    if has_cols:
+        styled = unknown_features_df.style.applymap(highlight_true, subset=has_cols)
+        st.dataframe(styled)
+    else:
+        st.dataframe(unknown_features_df)
+else:
+    st.info("No unknown features detected.")
 
 
     # ---------- Download individual hits CSV ----------
