@@ -130,7 +130,9 @@ def find_latest_by_prefix(
 
 from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
-LIB_XLSX = BASE_DIR / "CyanoMetDB_Version03.xlsx"
+#LIB_XLSX = BASE_DIR / "CyanoMetDB_Version03.xlsx"
+LIB_XLSX = BASE_DIR / "data" / "CyanoMetDB_Version03.xlsx"
+
 #LIB_XLSX = BASE_DIR / "data" / "CyanoMetDB_Version03.xlsx"
 #LIB_XLSX = os.path.join(BASE_DIR, "CyanoMetDB_Version03.xlsx")
 
