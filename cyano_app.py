@@ -900,13 +900,6 @@ if results is not None:
     else:
         st.info("No 'matches_with_scans_to_cyanometDB' PNG found for this run.")
 
-    # ---------- Unknown features with scans (PNG) ----------
-    unknown_png = results.get("unknown_features_png")
-    if unknown_png and os.path.exists(unknown_png):
-        st.subheader("Unknown features with scans")
-        st.image(unknown_png, width="content")
-    else:
-        st.info("No 'unknown_features_with_scans' PNG found for this run.")
 
     # ---------- adduct_graph_merged_(date).png ----------
     adduct_graph_png = results.get("adduct_graph_png")
@@ -932,23 +925,10 @@ if results is not None:
     unknown_features_df = results.get("unknown_features_df")
     if unknown_features_df is not None and not unknown_features_df.empty:
         st.subheader("Unknown features with scans (table)")
-
-        # get all diagnostic flag columns (has_*)
-        has_cols = [c for c in unknown_features_df.columns if str(c).startswith("has_")]
-
-        # styling function: orange tile for True
-        def highlight_true(val):
-            if val is True or str(val).lower() == "true" or val == 1:
-                return "background-color: orange; color: black"
-            return ""
-
-        if has_cols:
-            styled = unknown_features_df.style.applymap(highlight_true, subset=has_cols)
-            st.dataframe(styled)
-        else:
-            st.dataframe(unknown_features_df)
+        st.dataframe(unknown_features_df)
     else:
         st.info("No unknown features detected.")
+
 
     # ---------- Download individual hits CSV ----------
     if "ind_csv" in results:
