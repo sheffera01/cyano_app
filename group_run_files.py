@@ -1,11 +1,13 @@
 def group_files_by_timestamp(base_dir=".", minutes=5, custom_name=None):
     """
-    Group files/folders based on filesystem creation time.
-    
+    Group recent output files/folders based on filesystem creation time.
+
     Output folder format:
         <custom_name>_run_<timestamp>
     or if no name:
         run_<timestamp>
+
+    NOTE: Protects data/, CyanoMetDB_Version03.xlsx, and some tooling dirs.
     """
     import os
     import shutil
@@ -13,12 +15,23 @@ def group_files_by_timestamp(base_dir=".", minutes=5, custom_name=None):
 
     FILE_EXTS = (".csv", ".xlsx", ".png")
 
+    # --- things we NEVER want to move ---
+    PROTECTED_DIRS = {"data", ".git", ".devcontainer", ".streamlit", "__pycache__"}
+    PROTECTED_FILES = {"CyanoMetDB_Version03.xlsx"}
+
     # Collect entries (files + dirs)
     entries = []
     for name in os.listdir(base_dir):
-        if name.startswith("run_"):
+        # skip protected stuff
+        if name in PROTECTED_DIRS or name in PROTECTED_FILES:
             continue
+
+        # skip previous run folders
+        if name.startswith("run_") or (custom_name and name.startswith(f"{custom_name}_run_")):
+            continue
+
         path = os.path.join(base_dir, name)
+
         if os.path.isfile(path) and name.endswith(FILE_EXTS):
             entries.append(name)
         elif os.path.isdir(path):
@@ -47,7 +60,7 @@ def group_files_by_timestamp(base_dir=".", minutes=5, custom_name=None):
         print("No entries found inside the time window.")
         return
 
-    # --- Build folder name with custom name first ---
+    # Build folder name with custom name first
     ts_str = latest_time.strftime("%Y-%m-%d_%H-%M-%S")
     if custom_name:
         folder_name = f"{custom_name}_run_{ts_str}"
@@ -59,8 +72,11 @@ def group_files_by_timestamp(base_dir=".", minutes=5, custom_name=None):
 
     # Move items
     for name in selected:
-        shutil.move(os.path.join(base_dir, name), os.path.join(dest_dir, name))
+        src = os.path.join(base_dir, name)
+        dst = os.path.join(dest_dir, name)
+        shutil.move(src, dst)
         print(f"Moved: {name}")
+
 
     print(f"\nGrouped {len(selected)} items into folder: {folder_name}")
     return dest_dir
