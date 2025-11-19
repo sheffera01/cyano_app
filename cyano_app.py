@@ -377,18 +377,21 @@ def run_class_pipeline(
     ind_hits_l.to_csv(ind_csv, index=False)
     ind_csv_path = os.path.abspath(ind_csv)
 
-    # ---- 4) RT histograms & latest_ind ----
-    # load_latest_hits may depend on files that were just written above
-    try:
-        latest_ind, _ = load_latest_hits()
-    except FileNotFoundError as e:
-        # Fallback: use the hits we just computed
-        print(f"load_latest_hits: {e} -> using in-memory ind_hits_l instead.")
-        latest_ind = ind_hits_l.copy()
+    # ---- 4–9) RT histograms, plots, adduct pipeline based on this run's hits ----
+    latest_ind = ind_hits_l.copy()
 
     if latest_ind is None or latest_ind.empty:
         print("run_class_pipeline: latest_ind is empty; downstream plots/matching will be limited.")
+        # Safe defaults
+        fig_rt = None
+        fig_dot = None
+        dot_path = None
+        indiv_summary = pd.DataFrame()
+        merged_summary = pd.DataFrame()
+        merged_edges = pd.DataFrame()
+        G = None
     else:
+        # ---- 4) RT histograms ----
         plot_rt_histograms(latest_ind, ion_to_label, out_dir_root="RT_histogram_plots")
 
         # ---- 5) Counts ----
@@ -441,6 +444,9 @@ def run_class_pipeline(
                 "run_class_pipeline: no features in precursor m/z "
                 f"range {precursor_mz_min}–{precursor_mz_max}; skipping adduct pipeline."
             )
+            merged_summary = pd.DataFrame()
+            merged_edges = pd.DataFrame()
+            G = None
         else:
             try:
                 merged_summary, merged_edges, G = ap.run_merged(
@@ -457,12 +463,6 @@ def run_class_pipeline(
                 # e.g. "run_merged: input DataFrame is empty."
                 print(f"run_merged failed: {e}")
                 merged_summary, merged_edges, G = pd.DataFrame(), pd.DataFrame(), None
-    # If latest_ind was empty, set some safe defaults for plots / summaries
-    if latest_ind is None or latest_ind.empty:
-        fig_rt = None
-        fig_dot = None
-        dot_path = None
-        indiv_summary = pd.DataFrame()
 
     # ---- 10) CyanoMetDB matching ----
     try:
