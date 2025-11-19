@@ -929,10 +929,18 @@ if results is not None:
         st.dataframe(indiv_merged_df.head())
 
     # ---------- unknown_features_with_scans_(date) CSV/TSV/XLSX ----------
-    unknown_features_df = results.get("unknown_features_df")
-    if unknown_features_df is not None:
-        st.subheader("Unknown features with scans (table)")
-        st.dataframe(unknown_features_df.head())
+unknown_features_df = results.get("unknown_features_df")
+if unknown_features_df is not None and not unknown_features_df.empty:
+    st.subheader("Unknown features with scans (table)")
+    # Identify columns like has_MC..., has_something...
+    has_cols = [c for c in unknown_features_df.columns if c.startswith("has_")]
+    def highlight_true(val):
+        if val is True or str(val).lower() == "true":
+            return "background-color: lightblue; color: black"
+        return ""
+    styled = unknown_features_df.style.applymap(highlight_true, subset=has_cols)
+    st.dataframe(styled)
+
 
     # ---------- Download individual hits CSV ----------
     if "ind_csv" in results:
