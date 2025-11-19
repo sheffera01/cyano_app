@@ -221,7 +221,7 @@ CLASS_CONFIGS = {
         "ions": MPIONS,
         "default_files": DEFAULT_FILES_MP,
         "label_col": "CyanopeptideClass_MP",
-        "class_filter": "Micropeptin",
+        "class_filter": "Cyanopeptolin",
         "class_tag": "MP",
     },
     "AR": {
