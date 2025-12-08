@@ -603,7 +603,7 @@ def write_outputs(
                     ax=ax
                 )
                 ax.set_title("Unknown Features (≥2 diagnostic ions, per-file detail)", fontsize=14)
-                ax.set_xlabel("MP Diagnostic Fragments")
+                ax.set_xlabel("Diagnostic Fragments")
                 ax.set_ylabel("Unknown Precursor m/z (pattern, file)")
                 plt.xticks(rotation=45, ha="right")
                 plt.yticks(fontsize=7)
