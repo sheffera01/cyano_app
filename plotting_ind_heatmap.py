@@ -93,7 +93,7 @@ def plot_heatmaps(
         )
 
         plt.xlabel(f"Precursor m/z (binned, width={BIN_WIDTH} Da)")
-        plt.ylabel("Diagnostic MP ion")
+        plt.ylabel("Diagnostic ion")
         plt.title(title)
 
         plt.tight_layout()
@@ -187,6 +187,7 @@ def plot_combo_heatmaps(
             print(f" Skipping {which} — no data to plot.")
             return
 
+
         heat = (
             sub.groupby(["combo_label", "precmz_bin"])
                .size()
@@ -234,7 +235,7 @@ def plot_combo_heatmaps(
         plt.xticks(range(len(mat.columns)), [f"{c:.4f}" for c in mat.columns], rotation=90)
 
         plt.xlabel(f"Precursor m/z (binned, width={BIN_WIDTH} Da)")
-        plt.ylabel("Diagnostic MP ion (combo)")
+        plt.ylabel("Diagnostic ion (combo)")
         plt.title(title)
 
         plt.tight_layout()
