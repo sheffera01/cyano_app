@@ -120,7 +120,7 @@ def plot_indiv_counts(
     # 1) Unstacked bars (side-by-side)
     ax = pivot.plot(kind="bar", figsize=(12, 6))
     ax.set_ylabel("Hits")
-    ax.set_title("Counts by MP/diagnostic ion and file (individual)")
+    ax.set_title("Counts by Cyanopeptide diagnostic ion and file (individual)")
     plt.tight_layout()
     bar_path = os.path.join(out_dir, f"Diagnostic_ion_distribution_individual_{ts}.png")
     plt.savefig(bar_path, dpi=300, bbox_inches="tight", facecolor="white")
