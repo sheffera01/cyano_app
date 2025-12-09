@@ -139,7 +139,7 @@ def detect_adducts(
                         "dmz": float(dmz),
                         "expected_dmz": float(exp_dmz),
                     }))
-                    break  # keep first matching delta
+                    #break  # keep first matching delta
 
     # Keep lowest-ppm edge per (u,v)
     for u, v, data in edges:
