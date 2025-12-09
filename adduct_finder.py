@@ -29,6 +29,7 @@ DEFAULT_DELTAS: Dict[str, float] = {
     "+Na (vs H)":        22.989218 - PROTON,                 # Na vs H
     "+K (vs H)":         38.963158 - PROTON,                 # K vs H
     "-SO3":             -79.956815,                          # lose SO3
+    "+Na + H2O":             39.99,                          #add water and Na
 }
 
 @dataclass
