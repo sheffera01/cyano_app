@@ -179,14 +179,13 @@ def run_merged(
 
     # 2) Detect adducts
     cfg = af_module.AdductConfig(ppm_tol=10, mz_tol=0.01)
-    G, edges = af_module.detect_adducts(
+    G, edges_best, edges_all = af_module.detect_adducts(
         summary,
         mz_col=mz_col,
         charge_col=charge_col,
         rt_col=rt_col,
         cfg=cfg,
     )
-
     print("Merged:", G.number_of_nodes(), "nodes;", G.number_of_edges(), "edges")
 
     # 3) Save merged summary CSV
@@ -209,6 +208,14 @@ def run_merged(
         _save_edges_excel(edges_df, excel_path)
     else:
         print("Note: 'edges' is not a non-empty DataFrame; skipping edges CSV/Excel save.")
+      
+     # 4b) Save ALL adduct connections as a separate CSV
+    if isinstance(edges_all, pd.DataFrame) and not edges_all.empty:
+        all_edges_csv = os.path.join(out_dir_ts, f"adduct_all_connections_{ts}.csv")
+        edges_all.to_csv(all_edges_csv, index=False)
+        print(f"Saved ALL adduct connections → {os.path.abspath(all_edges_csv)}")
+    else:
+        print("No additional adduct connections to save (edges_all is empty or not a DataFrame).")
 
     # 5) Plot colored graph (PNG)
     png = os.path.join(out_dir_ts, f"adduct_graph_merged_{ts}.png") if save_graph else None
