@@ -167,6 +167,9 @@ def run_merged(
     """
     Build merged summary from df (already filtered upstream if desired),
     detect adducts, save CSVs + PNG, and return (summary_df, edges_df, graph).
+
+    edges_df here = BEST edges (one per node pair), suitable for graph/summary.
+    All edges (including alternative adduct assignments) are written to a separate CSV.
     """
     if df is None or df.empty:
         raise ValueError("run_merged: input DataFrame is empty.")
@@ -186,6 +189,7 @@ def run_merged(
         rt_col=rt_col,
         cfg=cfg,
     )
+
     print("Merged:", G.number_of_nodes(), "nodes;", G.number_of_edges(), "edges")
 
     # 3) Save merged summary CSV
@@ -193,23 +197,23 @@ def run_merged(
     summary.to_csv(merged_summary_csv, index=False)
     print(f"Saved merged summary → {os.path.abspath(merged_summary_csv)}")
 
-    # 4) Clean and save edges (CSV + Excel)
-    edges_df = _clean_edges_df(edges) if isinstance(edges, pd.DataFrame) else pd.DataFrame()
+    # 4) Clean and save BEST edges (CSV + Excel)
+    edges_df = _clean_edges_df(edges_best) if isinstance(edges_best, pd.DataFrame) else pd.DataFrame()
 
     if not edges_df.empty:
-        # Save CSV
+        # Save CSV of best edges
         merged_edges_csv = os.path.join(out_dir_ts, f"indiv_merged_edges_{ts}.csv")
         edges_df.to_csv(merged_edges_csv, index=False)
         print(f"Saved merged edges → {os.path.abspath(merged_edges_csv)}")
 
-        # Save Excel
+        # Save Excel summary of best edges
         excel_name = f"parent_adduct_summary_{ts}.xlsx"
         excel_path = os.path.join(out_dir_ts, excel_name)
         _save_edges_excel(edges_df, excel_path)
     else:
-        print("Note: 'edges' is not a non-empty DataFrame; skipping edges CSV/Excel save.")
-      
-     # 4b) Save ALL adduct connections as a separate CSV
+        print("Note: 'edges_best' is not a non-empty DataFrame; skipping best-edges CSV/Excel save.")
+
+    # 4b) Save ALL adduct connections as a separate CSV
     if isinstance(edges_all, pd.DataFrame) and not edges_all.empty:
         all_edges_csv = os.path.join(out_dir_ts, f"adduct_all_connections_{ts}.csv")
         edges_all.to_csv(all_edges_csv, index=False)
@@ -222,7 +226,6 @@ def run_merged(
     draw_colored_graph(G, title=graph_title, out_png=png)
 
     return summary, edges_df, G
-
 
 def run_per_file(
     df: pd.DataFrame,
