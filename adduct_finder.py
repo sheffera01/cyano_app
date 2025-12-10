@@ -63,28 +63,16 @@ def detect_adducts(
     charge_col: Optional[str] = "rep_charge",
     rt_col: Optional[str] = "rt_median",
     cfg: Optional[AdductConfig] = None,
-) -> Tuple[nx.Graph, pd.DataFrame]:
+) -> Tuple[nx.Graph, pd.DataFrame, pd.DataFrame]:
     """
     Build a graph linking nodes (precursors) whose m/z differences match configured deltas.
 
-    Parameters
-    ----------
-    df : DataFrame
-        Must contain `mz_col`. Optionally `charge_col` and `rt_col`.
-    mz_col : str
-        Column name of m/z (usually your merged precursor m/z).
-    charge_col : Optional[str]
-        Column with representative charge per node. If missing/None, falls back to cfg.max_charge_assumed.
-    rt_col : Optional[str]
-        If present, included in node labels/attrs for plotting convenience.
-    cfg : Optional[AdductConfig]
-        Tolerances, deltas, polarity, etc.
-
     Returns
     -------
-    (G, edges_df)
+    (G, edges_best_df, edges_all_df)
         G: networkx.Graph with node attributes {mz, z, rt}
-        edges_df: tidy table with columns [u, v, delta_name, delta_da, ppm, dmz, expected_dmz]
+        edges_best_df: one "best" edge (lowest ppm) per (u, v)
+        edges_all_df: all matching edges (u, v, possibly multiple delta_name per pair)
     """
     if cfg is None:
         cfg = AdductConfig()
@@ -103,9 +91,13 @@ def detect_adducts(
     # Node labels are rounded string m/z for readability; keep full-precision in attrs
     d["__node__"] = d[mz_col].round(4).astype(str)
 
+    # --------- Build nodes ----------
     G = nx.Graph()
-    for i, row in d.iterrows():
-        attrs = {"mz": float(row[mz_col]), "z": int(row[cz]) if not pd.isna(row[cz]) else cfg.max_charge_assumed}
+    for _, row in d.iterrows():
+        attrs = {
+            "mz": float(row[mz_col]),
+            "z": int(row[cz]) if not pd.isna(row[cz]) else cfg.max_charge_assumed,
+        }
         if rt_col and rt_col in d.columns:
             try:
                 attrs["rt"] = float(row[rt_col])
@@ -113,7 +105,7 @@ def detect_adducts(
                 pass
         G.add_node(row["__node__"], **attrs)
 
-    # Pairwise tests (O(N^2); fine for typical cluster counts)
+    # --------- Pairwise tests ----------
     edges: List[Tuple[str, str, Dict]] = []
     mz_vals = d[mz_col].values
     z_vals = d[cz].astype(float).values
@@ -126,22 +118,43 @@ def detect_adducts(
 
             for name, dmass in cfg.deltas.items():
                 exp_dmz = _expected_dmz(dmass, z_i)
-                if abs(dmz - exp_dmz) <= max(cfg.mz_tol, abs(exp_dmz) * cfg.ppm_tol / 1e6):
+                tol = max(cfg.mz_tol, abs(exp_dmz) * cfg.ppm_tol / 1e6)
+                if abs(dmz - exp_dmz) <= tol:
                     # ppm sanity check in neutral-mass space around [M+H]+ assumption
                     Mi = z_i * mz_vals[i] - PROTON
                     Mj_est = z_i * mz_vals[j] - PROTON
                     ppm_err = _ppm(Mj_est - (Mi + dmass), Mi + dmass)
-                    edges.append((nodes[i], nodes[j], {
-                        "label": f"{name} ({dmass:+.4f})",
-                        "delta_name": name,
-                        "delta_da": float(dmass),
-                        "ppm": float(ppm_err),
-                        "dmz": float(dmz),
-                        "expected_dmz": float(exp_dmz),
-                    }))
-                    #break  # keep first matching delta
+                    edges.append(
+                        (
+                            nodes[i],
+                            nodes[j],
+                            {
+                                "label": f"{name} ({dmass:+.4f})",
+                                "delta_name": name,
+                                "delta_da": float(dmass),
+                                "ppm": float(ppm_err),
+                                "dmz": float(dmz),
+                                "expected_dmz": float(exp_dmz),
+                            },
+                        )
+                    )
+                    # NOTE: no break → allow multiple deltas per pair
 
-    # Keep lowest-ppm edge per (u,v)
+    # --------- ALL matches table ----------
+    if edges:
+        edges_all_df = pd.DataFrame(
+            [
+                (u, v, d["delta_name"], d["delta_da"], d["ppm"], d["dmz"], d["expected_dmz"])
+                for u, v, d in edges
+            ],
+            columns=["u", "v", "delta_name", "delta_da", "ppm", "dmz", "expected_dmz"],
+        ).sort_values(["u", "v", "ppm", "delta_name"], ignore_index=True)
+    else:
+        edges_all_df = pd.DataFrame(
+            columns=["u", "v", "delta_name", "delta_da", "ppm", "dmz", "expected_dmz"]
+        )
+
+    # --------- BEST edge per (u, v) for the graph ----------
     for u, v, data in edges:
         if G.has_edge(u, v):
             if data["ppm"] < G[u][v].get("ppm", 1e9):
@@ -149,13 +162,16 @@ def detect_adducts(
         else:
             G.add_edge(u, v, **data)
 
-    edges_df = pd.DataFrame(
-        [(u, v, d.get("delta_name"), d.get("delta_da"), d.get("ppm"), d.get("dmz"), d.get("expected_dmz"))
-         for u, v, d in G.edges(data=True)],
-        columns=["u", "v", "delta_name", "delta_da", "ppm", "dmz", "expected_dmz"]
+    edges_best_df = pd.DataFrame(
+        [
+            (u, v, d.get("delta_name"), d.get("delta_da"), d.get("ppm"), d.get("dmz"), d.get("expected_dmz"))
+            for u, v, d in G.edges(data=True)
+        ],
+        columns=["u", "v", "delta_name", "delta_da", "ppm", "dmz", "expected_dmz"],
     ).sort_values(["ppm", "delta_name"], ignore_index=True)
 
-    return G, edges_df
+    return G, edges_best_df, edges_all_df
+
 
 
 def plot_graph(
