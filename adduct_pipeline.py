@@ -215,9 +215,22 @@ def run_merged(
 
     # 4b) Save ALL adduct connections as a separate CSV
     if isinstance(edges_all, pd.DataFrame) and not edges_all.empty:
+        edges_all_safe = edges_all.copy()
+    
+        # Prevent Excel from treating +Na, +K, etc. as formulas
+        if "delta_name" in edges_all_safe.columns:
+            edges_all_safe["delta_name"] = edges_all_safe["delta_name"].apply(
+                lambda x: (
+                    "'" + x  # leading apostrophe- Excel shows the text, not a formula
+                    if isinstance(x, str) and x[:1] in {"+", "-", "=", "@"}
+                    else x
+                )
+            )
+    
         all_edges_csv = os.path.join(out_dir_ts, f"adduct_all_connections_{ts}.csv")
-        edges_all.to_csv(all_edges_csv, index=False)
+        edges_all_safe.to_csv(all_edges_csv, index=False)
         print(f"Saved ALL adduct connections → {os.path.abspath(all_edges_csv)}")
+
     else:
         print("No additional adduct connections to save (edges_all is empty or not a DataFrame).")
 
