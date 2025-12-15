@@ -8,7 +8,7 @@ Helpers to:
   - export cleaned edges to Excel (renames 'expected' -> 'expected_dmz' and reorders columns)
 
 NOTE: This module purposely does NOT filter. Do any m/z or RT filtering in your notebook
-before calling these functions (pass a pre-filtered DataFrame).
+before calling these functions (pass a pre-filtered DataFrame). 
 """
 
 from __future__ import annotations
