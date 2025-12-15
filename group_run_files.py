@@ -1,3 +1,4 @@
+#group files by timestamp
 def group_files_by_timestamp(base_dir=".", minutes=5, custom_name=None):
     """
     Group recent output files/folders based on filesystem creation time.
