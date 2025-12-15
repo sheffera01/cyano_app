@@ -6,7 +6,7 @@ sum_intensity_from_scans.py
 - Explode scan_ids into individual scans
 - Join MS2 intensity ("i") from hits file
 - Sum intensity per MS1 feature
-- Save output with timestamp
+- Save output with timestamp 
 - Provides an importable function: sum_intensities()
 """
 
