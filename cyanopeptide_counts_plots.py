@@ -3,7 +3,7 @@
 cyanopeptide_counts_plots.py
 
 Plot bar charts of diagnostic ion counts (individual cyanopeptide labels and combo MP labels)
-by source_file, with graceful skipping if inputs are empty or missing.
+by source_file, with graceful skipping if inputs are empty or missing. 
 
 Features:
 - Works as a module (import functions and pass DataFrames)
