@@ -1,7 +1,7 @@
 # adduct_finder.py
 # Lightweight adduct / neutral-loss linker for merged precursor tables.
 #detects adducts and losses by linking precursor features with m/z mass shifts
-#builds network of related ions and plots to visualize precursor families 
+#builds network of related ions and plots to visualize precursor families  
 
 from __future__ import annotations
 import math
