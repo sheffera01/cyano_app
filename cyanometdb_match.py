@@ -6,7 +6,7 @@ cyanometdb_match.py
 - Match MS1 summaries to CyanometDB entries by precursor m/z within a tolerance.
 - Second Excel sheet for unmatched rows that have >=2 diagnostic "has_ " flags
 - CSV export and a heatmap PNG for those unknowns
-- Safe Excel engine fallback (xlsxwriter -> openpyxl)
+- Safe Excel engine fallback (xlsxwriter -> openpyxl) 
 """
 
 from __future__ import annotations
