@@ -874,7 +874,7 @@ if results is not None:
     # ---------- Cyanopeptide_detection_intensity_heatmap_adduct_outputs_(date) ----------
     heatmap_png = results.get("cyano_heatmap_png")
     if heatmap_png and os.path.exists(heatmap_png):
-        st.subheader("Cyanopeptide detection intensity heatmap")
+        st.subheader("Specific cyanopeptide-class detection intensity heatmap")
         st.image(heatmap_png, caption=os.path.basename(heatmap_png))
         st.markdown(
             f"""
