@@ -880,7 +880,6 @@ if results is not None:
             f"""
             <p style="text-align:center; font-size:18px; color:black;">
                 Output indicates presence (measured by sum of intensities) of cyanopeptides found in sample(s)<br>
-                {os.path.basename(heatmap_png)}
             </p>
             """,
             unsafe_allow_html=True
