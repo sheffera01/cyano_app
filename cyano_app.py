@@ -871,7 +871,21 @@ if run_clicked:
 results = st.session_state["results"]
 
 if results is not None:
-
+    # ---------- Cyanopeptide_detection_intensity_heatmap_adduct_outputs_(date) ----------
+    heatmap_png = results.get("cyano_heatmap_png")
+    if heatmap_png and os.path.exists(heatmap_png):
+        st.subheader("Cyanopeptide detection intensity heatmap")
+        st.image(heatmap_png, caption=os.path.basename(heatmap_png))
+        st.markdown(
+            f"""
+            <p style="text-align:center; font-size:0.9em; color:gray;">
+                Output indicates presence (measured by sum of intensities) of cyanopeptides found in sample(s)<br>
+                {os.path.basename(heatmap_png)}
+            </p>
+            """,
+            unsafe_allow_html=True
+        )
+    
     # ---------- Individual hits preview ----------
     if "ind_hits_l" in results:
         st.subheader("Individual hits (labeled) – preview")
@@ -912,11 +926,6 @@ if results is not None:
     else:
         st.info("No 'adduct_graph_merged_' PNG found for this run.")
 
-    # ---------- Cyanopeptide_detection_intensity_heatmap_adduct_outputs_(date) ----------
-    heatmap_png = results.get("cyano_heatmap_png")
-    if heatmap_png and os.path.exists(heatmap_png):
-        st.subheader("Cyanopeptide detection intensity heatmap")
-        st.image(heatmap_png, caption=os.path.basename(heatmap_png))
 
     # ---------- indiv_merged_summary_(date) ----------
     indiv_merged_df = results.get("indiv_merged_df")
