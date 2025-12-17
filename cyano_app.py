@@ -878,7 +878,7 @@ if results is not None:
         st.image(heatmap_png, caption=os.path.basename(heatmap_png))
         st.markdown(
             f"""
-            <p style="text-align:center; font-size:0.9em; color:gray;">
+            <p style="text-align:center; font-size:18px; color:black;">
                 Output indicates presence (measured by sum of intensities) of cyanopeptides found in sample(s)<br>
                 {os.path.basename(heatmap_png)}
             </p>
