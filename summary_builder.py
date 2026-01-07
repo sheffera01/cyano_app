@@ -1,6 +1,7 @@
-# summary_builder.py 
+# summary_builder.py
 import math
 import pandas as pd
+
 
 def compress_scan_ids(ids, compress=True, force_text=True):
     """Return comma-separated scan ids; optionally compress consecutive ranges."""
@@ -20,10 +21,12 @@ def compress_scan_ids(ids, compress=True, force_text=True):
                 start = prev = s
         ranges.append(f"{start}" if start == prev else f"{start}-{prev}")
         out = ",".join(ranges)
+
     if force_text:
         # Leading apostrophe keeps it as text in Excel
         return "'" + out if out and not out.startswith("'") else out
     return out
+
 
 def _decimals_from_tol(tol: float) -> int:
     """Infer number of decimal places to round to (e.g., 0.01 -> 2)."""
@@ -31,13 +34,34 @@ def _decimals_from_tol(tol: float) -> int:
         return 2
     return max(0, int(round(-math.log10(tol))))
 
+
+def assign_mz_clusters(mz: pd.Series, tol: float) -> pd.Series:
+    """
+    Assign cluster IDs to m/z values using a simple sorted "chaining" rule:
+    start a new cluster when the gap from the previous value exceeds tol.
+    """
+    order = mz.sort_values().index
+    clusters = pd.Series(index=mz.index, dtype=int)
+
+    current = 0
+    last_mz = None
+
+    for i in order:
+        if last_mz is None or abs(mz.loc[i] - last_mz) > tol:
+            current += 1
+        clusters.loc[i] = current
+        last_mz = mz.loc[i]
+
+    return clusters
+
+
 def make_summary_ind(
     df: pd.DataFrame,
     merge_tol_mz: float = 0.01,
     *,
     compress_scans: bool = False,
     force_text: bool = True,
-    ion_to_label: dict | None = None,   # <-- stays here
+    ion_to_label: dict | None = None,
 ) -> pd.DataFrame:
     """
     Summarize hits by precursor m/z within tolerance AND charge.
@@ -53,13 +77,13 @@ def make_summary_ind(
     if ion_to_label is None:
         ion_to_label = {}
 
-    # ---------- IMPORTANT PART: ALWAYS (RE)BUILD ion_label IF WE HAVE ion ----------
+    # ---------- ALWAYS (RE)BUILD ion_label IF WE HAVE ion ----------
     if "ion" in df.columns:
+
         def _map_label(x):
             if pd.isna(x):
                 return ""
             try:
-                # try mapping; fall back to formatted numeric
                 return ion_to_label.get(float(x), f"{float(x):.4f}")
             except Exception:
                 return str(x)
@@ -68,47 +92,45 @@ def make_summary_ind(
 
     # ---------- FALLBACK: if no 'ion' column at all ----------
     elif "ion_label" not in df.columns:
-        # Ultimate fallback: use precursor m/z as label
         df["ion_label"] = df["precmz"].map(
             lambda x: f"{float(x):.4f}" if pd.notna(x) else ""
         )
 
-    def assign_mz_clusters(mz: pd.Series, tol: float) -> pd.Series:
-    order = mz.sort_values().index
-    clusters = pd.Series(index=mz.index, dtype=int)
+    # ---- TRUE tolerance clustering on precursor m/z ----
+    # (Optional but recommended) cluster separately within each charge:
+    df["_mz_cluster"] = (
+        df.groupby("charge", group_keys=False)["precmz"]
+          .apply(lambda s: assign_mz_clusters(s, merge_tol_mz))
+    )
 
-    current = 0
-    last_mz = None
-
-    for i in order:
-        if last_mz is None or abs(mz[i] - last_mz) > tol:
-            current += 1
-        clusters[i] = current
-        last_mz = mz[i]
-
-    return clusters
-
-    df["_mz_cluster"] = assign_mz_clusters(df["precmz"], merge_tol_mz)
+    # Group by cluster + charge
     grouped = df.groupby(["_mz_cluster", "charge"], as_index=False)
 
-    def collect_info(sub):
-        return pd.Series({
-            "merged_precmz": sub["precmz"].mean(),
-            "rt_min": sub["rt"].min(),
-            "rt_median": sub["rt"].median(),
-            "rt_max": sub["rt"].max(),
-            "n_scans": sub["scan"].nunique(),
-            "scan_ids": compress_scan_ids(
-                sub["scan"].unique(), compress=compress_scans, force_text=force_text
-            ),
-            "ms1_scan_ids": compress_scan_ids(
-                sub["ms1scan"].unique(), compress=compress_scans, force_text=force_text
-            ),
-            "files": ",".join(sorted(sub["source_file"].unique())),
-        })
+    def collect_info(sub: pd.DataFrame) -> pd.Series:
+        return pd.Series(
+            {
+                "merged_precmz": sub["precmz"].mean(),
+                "rt_min": sub["rt"].min(),
+                "rt_median": sub["rt"].median(),
+                "rt_max": sub["rt"].max(),
+                "n_scans": sub["scan"].nunique(),
+                "scan_ids": compress_scan_ids(
+                    sub["scan"].unique(),
+                    compress=compress_scans,
+                    force_text=force_text,
+                ),
+                "ms1_scan_ids": compress_scan_ids(
+                    sub["ms1scan"].unique(),
+                    compress=compress_scans,
+                    force_text=force_text,
+                ),
+                "files": ",".join(sorted(sub["source_file"].unique())),
+            }
+        )
 
     summary = grouped.apply(collect_info).reset_index(drop=True)
 
+    # Presence/absence flags per ion_label (per mz cluster)
     presence = (
         df.groupby(["_mz_cluster", "ion_label"])["scan"]
           .size()
@@ -120,15 +142,12 @@ def make_summary_ind(
         f"has_{c}" for c in presence.columns if c != "_mz_cluster"
     ]
 
-    summary = (
-        summary.merge(presence, on="_mz_cluster", how="left")
-               .drop(columns=["_mz_cluster"])
+    summary = summary.merge(presence, on="_mz_cluster", how="left").drop(
+        columns=["_mz_cluster"]
     )
 
     print(f"make_summary_ind: {len(summary)} merged precursors from {len(df)} rows")
     return summary
-
-
 
 
 def make_summary_combo(df: pd.DataFrame, merge_tol_mz: float = 0.01) -> pd.DataFrame:
