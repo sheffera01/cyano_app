@@ -73,12 +73,23 @@ def make_summary_ind(
             lambda x: f"{float(x):.4f}" if pd.notna(x) else ""
         )
 
-    # Round precursors to a bin so "close enough" precursors merge (based on tolerance)
-    ndp = _decimals_from_tol(float(merge_tol_mz))
-    df["_mz_bin"] = df["precmz"].round(ndp)
+    def assign_mz_clusters(mz: pd.Series, tol: float) -> pd.Series:
+    order = mz.sort_values().index
+    clusters = pd.Series(index=mz.index, dtype=int)
 
-    # Group by m/z bin + charge
-    grouped = df.groupby(["_mz_bin", "charge"], as_index=False)
+    current = 0
+    last_mz = None
+
+    for i in order:
+        if last_mz is None or abs(mz[i] - last_mz) > tol:
+            current += 1
+        clusters[i] = current
+        last_mz = mz[i]
+
+    return clusters
+
+    df["_mz_cluster"] = assign_mz_clusters(df["precmz"], merge_tol_mz)
+    grouped = df.groupby(["_mz_cluster", "charge"], as_index=False)
 
     def collect_info(sub):
         return pd.Series({
@@ -98,15 +109,13 @@ def make_summary_ind(
 
     summary = grouped.apply(collect_info).reset_index(drop=True)
 
-    # Presence/absence flags per ion_label
     presence = (
-        df.groupby(["_mz_bin", "ion_label"])["scan"]
-          .size().unstack(fill_value=0).astype(bool).reset_index()
+    df.groupby(["_mz_cluster", "ion_label"])["scan"]
+      .size().unstack(fill_value=0).astype(bool).reset_index()
     )
-    presence.columns = ["_mz_bin"] + [f"has_{c}" for c in presence.columns if c != "_mz_bin"]
+    presence.columns = ["_mz_cluster"] + [f"has_{c}" for c in presence.columns if c != "_mz_cluster"]
 
-    # Merge presence flags back and drop helper col
-    summary = summary.merge(presence, on="_mz_bin", how="left").drop(columns=["_mz_bin"])
+    summary = summary.merge(presence, on="_mz_cluster", how="left").drop(columns=["_mz_cluster"])
 
     print(f"make_summary_ind: {len(summary)} merged precursors from {len(df)} rows")
     return summary
