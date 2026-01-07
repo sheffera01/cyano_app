@@ -110,15 +110,24 @@ def make_summary_ind(
     summary = grouped.apply(collect_info).reset_index(drop=True)
 
     presence = (
-    df.groupby(["_mz_cluster", "ion_label"])["scan"]
-      .size().unstack(fill_value=0).astype(bool).reset_index()
+        df.groupby(["_mz_cluster", "ion_label"])["scan"]
+          .size()
+          .unstack(fill_value=0)
+          .astype(bool)
+          .reset_index()
     )
-    presence.columns = ["_mz_cluster"] + [f"has_{c}" for c in presence.columns if c != "_mz_cluster"]
+    presence.columns = ["_mz_cluster"] + [
+        f"has_{c}" for c in presence.columns if c != "_mz_cluster"
+    ]
 
-    summary = summary.merge(presence, on="_mz_cluster", how="left").drop(columns=["_mz_cluster"])
+    summary = (
+        summary.merge(presence, on="_mz_cluster", how="left")
+               .drop(columns=["_mz_cluster"])
+    )
 
     print(f"make_summary_ind: {len(summary)} merged precursors from {len(df)} rows")
     return summary
+
 
 
 
