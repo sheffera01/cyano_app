@@ -965,51 +965,45 @@ if results is not None:
 import io
 import os
 import zipfile
+results = st.session_state["results"]
 
-# ---------- Download ALL outputs as a single ZIP (Community Cloud friendly) ----------
-all_files = results.get("all_files", [])
-if all_files:
-    existing = [p for p in all_files if p and os.path.exists(p)]
+if results is not None:
 
-    MAX_ZIP_MB = 200
-    total_bytes = sum(os.path.getsize(p) for p in existing)
-    total_mb = total_bytes / (1024 * 1024)
-
-    if not existing:
-        st.info("No output files found on disk.")
-    elif total_mb > MAX_ZIP_MB:
-        st.warning(
-            f"Outputs are ~{total_mb:.1f} MB which may be too large to zip in-memory on Streamlit Cloud. "
-            "Consider reducing outputs or zipping fewer files."
-        )
-    else:
-        zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-            for path in sorted(existing):
-                arcname = os.path.relpath(path, BASE_DIR)
-                zf.write(path, arcname=arcname)
-
-        zip_buffer.seek(0)
-
-        st.download_button(
-            label=f"Download all outputs as ZIP ({len(existing)} files, ~{total_mb:.1f} MB)",
-            data=zip_buffer,
-            file_name="ms2_project_outputs.zip",
-            mime="application/zip",
-        )
-
-        with st.expander("Files included"):
-            for p in sorted(existing):
-                st.code(os.path.relpath(p, BASE_DIR))
-else:
-    st.info("No output files recorded in this run.")
-
-    
-        
-    # ---------- Download any output file ----------
+    # ===== ZIP DOWNLOAD BLOCK =====
     all_files = results.get("all_files", [])
     if all_files:
-        st.subheader("All output files")
+        existing = [p for p in all_files if p and os.path.exists(p)]
+
+        MAX_ZIP_MB = 200
+        total_bytes = sum(os.path.getsize(p) for p in existing)
+        total_mb = total_bytes / (1024 * 1024)
+
+        if not existing:
+            st.info("No output files found on disk.")
+        elif total_mb > MAX_ZIP_MB:
+            st.warning(
+                f"Outputs are ~{total_mb:.1f} MB which may be too large to zip in-memory."
+            )
+        else:
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+                for path in sorted(existing):
+                    arcname = os.path.relpath(path, BASE_DIR)
+                    zf.write(path, arcname=arcname)
+
+            zip_buffer.seek(0)
+
+            st.download_button(
+                label=f"Download all outputs as ZIP ({len(existing)} files)",
+                data=zip_buffer,
+                file_name="ms2_project_outputs.zip",
+                mime="application/zip",
+            )
+
+    # ===== INDIVIDUAL FILE DOWNLOAD BLOCK (your original) =====
+    all_files = results.get("all_files", [])
+    if all_files:
+        st.subheader("All output files (individual downloads)")
         st.write(
             "All files generated for this run (CSVs, PNGs, Excel, etc.) "
             "under the ms2_project directory."
