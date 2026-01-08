@@ -16,7 +16,7 @@ import streamlit as st
 import re
 from pathlib import Path
 
-# Base dir for saving uploaded / fixed files (your ms2_project)
+# Base dir for saving uploaded / fixed files 
 BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_DIR = BASE_DIR / "uploaded_mzml"
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -49,7 +49,7 @@ from group_run_files import group_files_by_timestamp
 
 def save_and_fix_uploaded_mzml(uploaded_file) -> str:
     """
-    Save an uploaded mzML under ms2_project/uploaded_mzml,
+    Save an uploaded mzML under uploaded_mzml,
     and fix spectrum IDs like 'merged=2709 row=0' -> 'scan=2709'
     so massql's loader doesn't crash. Returns the saved file path.
     """
@@ -1006,7 +1006,7 @@ if results is not None:
         st.subheader("All output files (individual downloads)")
         st.write(
             "All files generated for this run (CSVs, PNGs, Excel, etc.) "
-            "under the ms2_project directory."
+            "."
         )
 
         for path in sorted(all_files):
