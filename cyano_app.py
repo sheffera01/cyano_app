@@ -823,20 +823,17 @@ if precursor_mz_max < precursor_mz_min:
     st.error("Precursor m/z max must be ≥ min!")
 
 # Library tolerance settings
-lib_tol_mode = st.radio(
-    "Library tolerance type for CyanoMetDB matching",
-    ["Da", "ppm"],
-    horizontal=True,
-)
+st.markdown("### Library tolerance for CyanoMetDB matching")
 
-default_lib_tol = 0.1 if lib_tol_mode == "Da" else 5.0  # e.g. 5 ppm default
 lib_tol_value = st.number_input(
-    f"Library tolerance ({lib_tol_mode})",
+    "Library tolerance (Da)",
     min_value=0.0001,
     max_value=1000.0,
-    value=default_lib_tol,
-    step=0.0001 if lib_tol_mode == "Da" else 0.1,
+    value=0.1,     # default 0.1 Da
+    step=0.0001,
+    help="Maximum allowed |m/z observed − m/z library| for a match."
 )
+
 
 # 1) Run the pipeline only when button is clicked
 run_clicked = st.button("Run analysis")
