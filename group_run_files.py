@@ -15,6 +15,8 @@ def group_files_by_timestamp(base_dir=".", minutes=5, custom_name=None):
     from datetime import datetime, timedelta
 
     FILE_EXTS = (".csv", ".xlsx", ".png")
+    EXCLUDE_DIRS = {"MS1_points"}  # <-- add more if you want
+
 
     # --- things we NEVER want to move ---
     PROTECTED_DIRS = {"data", ".git", ".devcontainer", ".streamlit", "__pycache__"}
