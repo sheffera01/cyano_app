@@ -1034,3 +1034,11 @@ if results is not None:
 
 else:
     st.info("Run the analysis to see results.")
+
+
+# ---------- Contact ----------
+st.divider()
+st.subheader("Need help?")
+st.info(
+    "If you see an error or something looks off, contact Sierra Hefferan @sheffera@umich.edu."
+)
