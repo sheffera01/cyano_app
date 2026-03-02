@@ -114,7 +114,13 @@ def detect_adducts(
     for i in range(len(d)):
         for j in range(i + 1, len(d)):
             dmz = mz_vals[j] - mz_vals[i]
+
             z_i = z_vals[i] if z_vals[i] else cfg.max_charge_assumed
+            z_j = z_vals[j] if z_vals[j] else cfg.max_charge_assumed
+
+            # Enforce same-charge linking
+            if z_i != z_j:
+                continue
 
             for name, dmass in cfg.deltas.items():
                 exp_dmz = _expected_dmz(dmass, z_i)
