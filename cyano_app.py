@@ -838,8 +838,8 @@ lib_tol_value = st.number_input(
 )
 
 st.caption(
-    "CyanoMetDB reference: Jones MR et al., *CyanoMetDB, a comprehensive public "
-    "database of secondary metabolites from cyanobacteria*, Water Research 196 "
+    "CyanoMetDB reference: Jones MR et al., CyanoMetDB, a comprehensive public "
+    "database of secondary metabolites from cyanobacteria, *Water Research 196* "
     "(2021) 117017. https://doi.org/10.1016/j.watres.2021.117017"
 )
 
