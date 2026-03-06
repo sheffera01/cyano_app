@@ -823,12 +823,17 @@ if precursor_mz_max < precursor_mz_min:
     st.error("Precursor m/z max must be ≥ min!")
 
 # Library tolerance settings
+st.caption(
+    "CyanoMetDB reference: Jones MR et al., *CyanoMetDB, a comprehensive public "
+    "database of secondary metabolites from cyanobacteria*, Water Research 196 "
+    "(2021) 117017. https://doi.org/10.1016/j.watres.2021.117017"
+)
+
 lib_tol_mode = st.radio(
     "Library tolerance type for CyanoMetDB matching",
     ["Da", "ppm"],
     horizontal=True,
 )
-
 default_lib_tol = 0.1 if lib_tol_mode == "Da" else 30.0  # e.g. 30 ppm default
 lib_tol_value = st.number_input(
     f"Library tolerance ({lib_tol_mode})",
