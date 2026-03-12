@@ -720,6 +720,8 @@ class_key = st.selectbox(
     "Cyanopeptide class",
     ["MC", "MP", "AR", "AB", "MV", "AG", "MG"],
     format_func=lambda k: CLASS_CONFIGS[k]["label"],
+    help="""
+Chose the cyanopeptide class you would like to run on your files for analysis.
 )
 
 cfg = CLASS_CONFIGS[class_key]
@@ -798,6 +800,8 @@ rt_min, rt_max = st.slider(
     max_value=100.0,
     value=(2.0, 25.0),
     step=0.1,
+    help="""
+Retention time in minutes. Use slider to limit features analyzed in this time window. 
 )
 
 # Precursor m/z filter
@@ -835,6 +839,8 @@ lib_tol_value = st.number_input(
     max_value=1000.0,
     value=default_lib_tol,
     step=0.0001 if lib_tol_mode == "Da" else 0.1,
+    help="""
+This is for matching your features M+H to CyanoMetDB's database. Use 0.1 Da or be more stringent (<0.1 Da), or looser tolerance (>0.1 Da)
 )
 
 st.caption(
