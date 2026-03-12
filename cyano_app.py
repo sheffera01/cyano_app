@@ -842,7 +842,8 @@ lib_tol_value = st.number_input(
     value=default_lib_tol,
     step=0.0001 if lib_tol_mode == "Da" else 0.1,
     help="""
-This is for matching your features M+H to CyanoMetDB's database. Use 0.1 Da or be more stringent (<0.1 Da), or looser tolerance (>0.1 Da)
+This is for matching your features M+H to CyanoMetDB's database. Use 0.1 Da or be more stringent (<0.1 Da), or looser tolerance (>0.1 Da).
+If you'd prefer ppm, use ____ for 30 ppm or be more stringent (<30 ppm) or looser tolerance (>30 ppm)
 """,
 )
 
