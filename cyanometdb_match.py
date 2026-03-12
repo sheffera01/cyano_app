@@ -213,27 +213,41 @@ def match_ms1_to_lib(
     *,
     ms1_mz_col: str = MS1_MZ_COL,
     lib_mz_col: str = LIB_MZ_COL,
-    tol_da: float = 0.1,
+    tol_da: float | None = None,
+    tol_ppm: float | None = None,
 ) -> pd.DataFrame:
     """
-    Match MS1 features to library entries based on precursor m/z within ± tol_da.
-    Returns a merged DataFrame with annotations from the library.
+    Match MS1 features to library entries based on precursor m/z.
+    Supports either absolute Da tolerance or ppm tolerance.
     """
     results = []
     ms1_df = ms1_df.copy()
 
-    # Ensure numeric m/z
     ms1_df[ms1_mz_col] = pd.to_numeric(ms1_df[ms1_mz_col], errors="coerce")
     valid_ms1 = ms1_df[ms1_df[ms1_mz_col].notna()]
 
     for _, ms1_row in valid_ms1.iterrows():
         mz = ms1_row[ms1_mz_col]
-        hits = lib_df[np.abs(lib_df[lib_mz_col] - mz) <= tol_da]
+
+        if tol_ppm is not None:
+            effective_tol_da = mz * tol_ppm / 1e6
+        else:
+            effective_tol_da = tol_da if tol_da is not None else 0.1
+
+        hits = lib_df[np.abs(lib_df[lib_mz_col] - mz) <= effective_tol_da]
+
         if hits.empty:
-            results.append({**ms1_row.to_dict(), "Compound identifier": np.nan})
+            results.append({
+                **ms1_row.to_dict(),
+                "Compound identifier": np.nan,
+            })
         else:
             for _, hit in hits.iterrows():
-                row = {**ms1_row.to_dict(), **hit.to_dict()}
+                row = {
+                    **ms1_row.to_dict(),
+                    **hit.to_dict(),
+                    "match_tol_da": effective_tol_da,
+                }
                 results.append(row)
 
     return pd.DataFrame(results)
