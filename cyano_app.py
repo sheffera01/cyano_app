@@ -916,7 +916,7 @@ if results is not None:
     # ---------- matched_compound_tiles_(date) ----------
     matched_tiles_png = results.get("matched_tiles_png")
     if matched_tiles_png and os.path.exists(matched_tiles_png):
-        st.subheader("Matched compound tiles")
+        st.subheader("Matched compound tiles (Putative annotations)")
         st.image(matched_tiles_png, caption=os.path.basename(matched_tiles_png))
     else:
         st.info("No 'matches_with_scans_to_cyanometDB' PNG found for this run.")
