@@ -893,7 +893,7 @@ if results is not None:
         st.image(heatmap_png, caption=os.path.basename(heatmap_png))
         st.markdown(
             f"""
-            <p style="text-align:center; font-size:10px; color:black;">
+            <p style="text-align:center; font-size:15px; color:black;">
                 Output indicates presence (measured by sum of intensities) of cyanopeptides found in sample(s)<br>
             </p>
             """,
@@ -913,7 +913,7 @@ if results is not None:
         st.pyplot(results["fig_rt"])
         st.markdown(
             f"""
-            <p style="text-align:center; font-size:10px; color:black;">
+            <p style="text-align:center; font-size:15px; color:black;">
                 Retention time plot versus diagnostic product ion detected for cyanopeptide class<br>
             </p>
             """,
@@ -926,8 +926,8 @@ if results is not None:
         st.pyplot(results["fig_dot"])
         st.markdown(
             f"""
-            <p style="text-align:center; font-size:10px; color:black;">
-                Scatter plot of diagnostic ion detection across precursor m/z values. Each point represents the presence of a diagnostic ion associated with a given precursor ion. Point size is scaled by the number of scans in which the precursor was observed, reflecting relative abundance or detection frequency, while color indicates the source file<br>
+            <p style="text-align:center; font-size:15px; color:black;">
+                Scatter plot of diagnostic ion detection across precursor m/z values. Each point represents the presence of a diagnostic ion associated with a given precursor ion. Point size is scaled by the number of scans in which the precursor was observed, reflecting relative abundance or detection frequency, while color indicates the source file.<br>
             </p>
             """,
             unsafe_allow_html=True
@@ -937,7 +937,14 @@ if results is not None:
     if diag_png and os.path.exists(diag_png):
         st.subheader("Diagnostic ion distribution – individual")
         st.image(diag_png, caption=os.path.basename(diag_png))
-
+        st.markdown(
+            f"""
+            <p style="text-align:center; font-size:15px; color:black;">
+                Counts of each diagnostic product ion for each file detected. <br>
+            </p>
+            """,
+            unsafe_allow_html=True
+        )   
     # ---------- matched_compound_tiles_(date) ----------
     matched_tiles_png = results.get("matched_tiles_png")
     if matched_tiles_png and os.path.exists(matched_tiles_png):
@@ -945,7 +952,14 @@ if results is not None:
         st.image(matched_tiles_png, caption=os.path.basename(matched_tiles_png))
     else:
         st.info("No 'matches_with_scans_to_cyanometDB' PNG found for this run.")
-
+        st.markdown(
+            f"""
+            <p style="text-align:center; font-size:15px; color:black;">
+                Level 3 identification of putative matches to cyanopeptides based on m/z, class-specific CyanoMetDB search, and presence of specific diagnostic product ions. <br>
+            </p>
+            """,
+            unsafe_allow_html=True
+        )   
 
     # ---------- adduct_graph_merged_(date).png ----------
     adduct_graph_png = results.get("adduct_graph_png")
