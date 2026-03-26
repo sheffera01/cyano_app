@@ -718,7 +718,7 @@ if "results" not in st.session_state:
 
 class_key = st.selectbox(
     "Cyanopeptide class",
-    ["MC", "MP", "AR", "AB", "MV", "AG", "MG"],
+    ["MC", "MP", "AR", "AB", "MG"],
     format_func=lambda k: CLASS_CONFIGS[k]["label"],
     help="""
 Chose the cyanopeptide class you would like to run on your files for analysis.
