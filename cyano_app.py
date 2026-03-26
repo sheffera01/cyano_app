@@ -950,8 +950,6 @@ if results is not None:
     if matched_tiles_png and os.path.exists(matched_tiles_png):
         st.subheader("Matched compound tiles (Putative annotations)")
         st.image(matched_tiles_png, caption=os.path.basename(matched_tiles_png))
-    else:
-        st.info("No 'matches_with_scans_to_cyanometDB' PNG found for this run.")
         st.markdown(
             f"""
             <p style="text-align:center; font-size:15px; color:black;">
@@ -960,12 +958,23 @@ if results is not None:
             """,
             unsafe_allow_html=True
         )   
+    else:
+        st.info("No 'matches_with_scans_to_cyanometDB' PNG found for this run.")
+
 
     # ---------- adduct_graph_merged_(date).png ----------
     adduct_graph_png = results.get("adduct_graph_png")
     if adduct_graph_png and os.path.exists(adduct_graph_png):
         st.subheader("Adduct graph (merged) if messy please open Parent Adduct Summary Excel")
         st.image(adduct_graph_png, caption=os.path.basename(adduct_graph_png))
+        st.markdown(
+            f"""
+            <p style="text-align:center; font-size:15px; color:black;">
+                Adduct network of compounds related by common adducts. Use this to compare your matched and putative novel congeners! <br>
+            </p>
+            """,
+            unsafe_allow_html=True
+        )   
     else:
         st.info("No 'adduct_graph_merged_' PNG found for this run.")
 
@@ -981,6 +990,14 @@ if results is not None:
     if unknown_features_df is not None and not unknown_features_df.empty:
         st.subheader("Unknown features with scans (table)")
         st.dataframe(unknown_features_df)
+        st.markdown(
+            f"""
+            <p style="text-align:center; font-size:15px; color:black;">
+                Unknown putative novel congeners with 2 or more diagnostic product ions for your class of compounds. Remember to compare with your adduct network! The putative novel congeners list can aid in prioritization of metabolites for further characterization analysis.<br>
+            </p>
+            """,
+            unsafe_allow_html=True
+        )   
     else:
         st.info("No unknown features detected.")
 
