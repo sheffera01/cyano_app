@@ -893,7 +893,7 @@ if results is not None:
         st.image(heatmap_png, caption=os.path.basename(heatmap_png))
         st.markdown(
             f"""
-            <p style="text-align:center; font-size:18px; color:black;">
+            <p style="text-align:center; font-size:10px; color:black;">
                 Output indicates presence (measured by sum of intensities) of cyanopeptides found in sample(s)<br>
             </p>
             """,
@@ -911,12 +911,27 @@ if results is not None:
     if results.get("fig_rt") is not None:
         st.subheader("Precursor RT plot")
         st.pyplot(results["fig_rt"])
+        st.markdown(
+            f"""
+            <p style="text-align:center; font-size:10px; color:black;">
+                Retention time plot versus diagnostic product ion detected for cyanopeptide class<br>
+            </p>
+            """,
+            unsafe_allow_html=True
+        )        
 
     # ---------- Dot plot ----------
     if results.get("fig_dot") is not None:
         st.subheader("Individual ion dot plot")
         st.pyplot(results["fig_dot"])
-
+        st.markdown(
+            f"""
+            <p style="text-align:center; font-size:10px; color:black;">
+                Scatter plot of diagnostic ion detection across precursor m/z values. Each point represents the presence of a diagnostic ion associated with a given precursor ion. Point size is scaled by the number of scans in which the precursor was observed, reflecting relative abundance or detection frequency, while color indicates the source file<br>
+            </p>
+            """,
+            unsafe_allow_html=True
+        )
     # ---------- Diagnostic_ion_distribution_individual_(date) ----------
     diag_png = results.get("diagnostic_individual_png")
     if diag_png and os.path.exists(diag_png):
