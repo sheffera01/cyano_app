@@ -850,7 +850,7 @@ If you'd prefer ppm, use ____ for 30 ppm or be more stringent (<30 ppm) or loose
 st.caption(
     "CyanoMetDB reference: Jones MR et al., CyanoMetDB, a comprehensive public "
     "database of secondary metabolites from cyanobacteria, *Water Research 196* "
-    "(2021) 117017. https://doi.org/10.1016/j.watres.2021.117017"
+    "(2021) 117017. https://doi.org/10.1016/j.watres.2021.117017; Janssen et al, 2024, DOI: 10.5281/zenodo.13854577"
 )
 
 # 1) Run the pipeline only when button is clicked
